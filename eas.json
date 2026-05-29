@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 8.0.0"
+    "version": ">= 8.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -14,10 +15,6 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "YOUR_SUPABASE_URL",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_SUPABASE_ANON_KEY"
       }
     },
     "production": {
