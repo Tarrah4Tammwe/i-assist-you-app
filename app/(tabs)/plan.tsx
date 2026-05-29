@@ -6,15 +6,12 @@
 //   fixed=false → task/break/food/transition — user can reorder freely
 //
 // Drag to reorder: uses react-native-draggable-flatlist
-//   npm install react-native-draggable-flatlist
-//   (gesture-handler and reanimated are already included in Expo SDK)
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   Pressable,
-  ScrollView,
   StyleSheet,
   Platform,
 } from 'react-native';
@@ -27,16 +24,17 @@ import DraggableFlatList, {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useStore, PlanBlock } from '../../lib/store';
 import { useSupabaseUser } from '../../hooks/useSupabaseUser';
-import { colors, radius, spacing, blockTypeColors } from '../../constants/theme';
+import { supabase } from '../../lib/supabase';
+import { colors, radius, spacing } from '../../constants/theme';
 import { TaskExecutor } from '../../components/TaskExecutor';
 
-// ─── Energy emoji map ─────────────────────────────────────────────────────────
+// ─── Energy emoji map ──────────────────────────────────────────────────────────
 
 const ENERGY_EMOJI: Record<number, string> = {
   1: '🪫', 2: '😶', 3: '🌤', 4: '⚡', 5: '🔥',
 };
 
-// ─── Block with local key for DraggableFlatList ───────────────────────────────
+// ─── Block with local key for DraggableFlatList ────────────────────────────────
 
 interface KeyedBlock extends PlanBlock {
   key: string;
@@ -47,7 +45,7 @@ interface KeyedBlock extends PlanBlock {
 function TypeBadge({ type, fixed }: { type: PlanBlock['type']; fixed?: boolean }) {
   if (fixed) {
     return (
-      <View style={[badge.pill, { backgroundColor: colors.goldBg, borderColor: colors.goldDim }]}>
+      <View style={[badge.pill, { backgroundColor: colors.goldBg, borderColor: colors.goldDim, borderWidth: 1 }]}>
         <Text style={[badge.text, { color: colors.gold }]}>🔒 fixed</Text>
       </View>
     );
@@ -121,6 +119,11 @@ function BlockCard({
         </Pressable>
       )}
 
+      {/* Fixed block — no drag handle, slightly wider content */}
+      {block.fixed && (
+        <View style={s.fixedIndicator} />
+      )}
+
       <View style={s.blockContent}>
         {/* Header row */}
         <View style={s.blockTop}>
@@ -140,7 +143,7 @@ function BlockCard({
             </Text>
           </Pressable>
 
-          {/* ⚡ Do this on every block, not just tasks */}
+          {/* ⚡ Do this on all blocks — including breaks/food */}
           {!block.fixed && (
             <Pressable
               style={[s.actionBtn, isExecutorOpen && s.actionBtnActive]}
@@ -167,6 +170,81 @@ function BlockCard({
   );
 }
 
+// ─── No plan gate ─────────────────────────────────────────────────────────────
+
+function NoPlanGate() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[gate.container, { paddingTop: insets.top, paddingBottom: insets.bottom + spacing.navHeight }]}>
+      <Text style={gate.icon}>🌅</Text>
+      <Text style={gate.title}>Start your morning first</Text>
+      <Text style={gate.sub}>I need your energy and today's context to help properly.</Text>
+      <Pressable style={gate.btn} onPress={() => router.push('/(tabs)/morning')}>
+        <Text style={gate.btnText}>Go to morning →</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const gate = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screenPad,
+    gap: spacing.md,
+  },
+  icon: { fontSize: 40 },
+  title: {
+    fontFamily: 'Syne-Bold',
+    fontSize: 18,
+    color: colors.cream,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  sub: {
+    fontFamily: 'Literata-Light',
+    fontSize: 13,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  btn: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    marginTop: spacing.sm,
+  },
+  btnText: {
+    fontFamily: 'Syne-Bold',
+    fontSize: 14,
+    color: colors.bg,
+    letterSpacing: 0.2,
+  },
+});
+
+// ─── Persist done state to Supabase ──────────────────────────────────────────
+// Fire-and-forget — we don't block the UI on this.
+
+async function persistDoneState(
+  planId: string,
+  userId: string,
+  doneKeys: string[],
+  blocks: KeyedBlock[],
+) {
+  const updatedBlocks = blocks.map(b => ({
+    ...b,
+    done: doneKeys.includes(b.key),
+  }));
+  await supabase
+    .from('plans')
+    .update({ blocks: updatedBlocks })
+    .eq('id', planId)
+    .eq('user_id', userId);
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function PlanScreen() {
@@ -176,18 +254,43 @@ export default function PlanScreen() {
   const { user } = useSupabaseUser();
 
   // Resolve plan data — prefer Zustand, fall back to route params
-  const energy = todayPlan?.energy ?? parseInt(params.energy ?? '3', 10);
-  const name   = todayPlan?.name   ?? params.name ?? '';
-  const rawBlocks: PlanBlock[] = todayPlan?.blocks
-    ?? (params.blocks ? JSON.parse(params.blocks) : []);
+  const energy  = todayPlan?.energy ?? parseInt(params.energy ?? '3', 10);
+  const name    = todayPlan?.name   ?? params.name ?? '';
+  const planId  = todayPlan?.id;
+
+  const rawBlocks: PlanBlock[] = useMemo(() =>
+    todayPlan?.blocks ?? (params.blocks ? JSON.parse(params.blocks) : []),
+    [todayPlan, params.blocks],
+  );
+
+  // No plan at all — show gate
+  const hasPlan = rawBlocks.length > 0;
 
   // Keyed blocks for DraggableFlatList
   const [blocks, setBlocks] = useState<KeyedBlock[]>(() =>
     rawBlocks.map((b, i) => ({ ...b, key: `block-${i}` }))
   );
 
-  const [done, setDone]           = useState<Set<string>>(new Set());
-  const [openExec, setOpenExec]   = useState<string | null>(null);
+  // Re-sync blocks if plan changes (e.g. user rebuilt morning)
+  const prevRawRef = useRef(rawBlocks);
+  useEffect(() => {
+    if (rawBlocks !== prevRawRef.current && rawBlocks.length > 0) {
+      setBlocks(rawBlocks.map((b, i) => ({ ...b, key: `block-${i}` })));
+      setDone(new Set());
+      setOpenExec(null);
+      prevRawRef.current = rawBlocks;
+    }
+  }, [rawBlocks]);
+
+  const [done, setDone]         = useState<Set<string>>(() => {
+    // Re-hydrate done state from blocks if they came from Supabase with done:true
+    const doneSaved = rawBlocks
+      .map((b: any, i) => (b.done ? `block-${i}` : null))
+      .filter(Boolean) as string[];
+    return new Set(doneSaved);
+  });
+  const [openExec, setOpenExec] = useState<string | null>(null);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const progress = blocks.length > 0 ? Math.round((done.size / blocks.length) * 100) : 0;
 
@@ -195,6 +298,15 @@ export default function PlanScreen() {
     setDone(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
+
+      // Persist with debounce — don't hammer Supabase on every tap
+      if (planId && user?.id) {
+        if (persistTimer.current) clearTimeout(persistTimer.current);
+        persistTimer.current = setTimeout(() => {
+          persistDoneState(planId, user.id, [...next], blocks);
+        }, 1500);
+      }
+
       return next;
     });
   };
@@ -219,9 +331,8 @@ export default function PlanScreen() {
     </ScaleDecorator>
   ), [done, openExec, energy, user]);
 
-  // Fixed blocks should stay in place — only reorder moveable blocks
+  // Fixed blocks stay in place — only reorder moveable blocks
   const onDragEnd = useCallback(({ data }: { data: KeyedBlock[] }) => {
-    // Reconstruct: keep fixed blocks at their original indices, move flexible blocks
     const fixedPositions = blocks.reduce<Record<number, KeyedBlock>>((acc, b, i) => {
       if (b.fixed) acc[i] = b;
       return acc;
@@ -234,7 +345,18 @@ export default function PlanScreen() {
       return movedFlexible[flexIdx++];
     });
     setBlocks(merged);
-  }, [blocks]);
+
+    // Persist reordered blocks
+    if (planId && user?.id) {
+      supabase
+        .from('plans')
+        .update({ blocks: merged })
+        .eq('id', planId)
+        .eq('user_id', user.id);
+    }
+  }, [blocks, planId, user]);
+
+  if (!hasPlan) return <NoPlanGate />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -259,7 +381,7 @@ export default function PlanScreen() {
         </View>
 
         {/* ── Drag hint ── */}
-        <Text style={s.dragHint}>Hold a block to reorder · Fixed blocks can't be moved</Text>
+        <Text style={s.dragHint}>Hold to reorder · I rescheduled fixed blocks — don't touch those</Text>
 
         {/* ── Plan blocks ── */}
         <DraggableFlatList
@@ -267,6 +389,7 @@ export default function PlanScreen() {
           onDragEnd={onDragEnd}
           keyExtractor={item => item.key}
           renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           contentContainerStyle={[
             s.listContent,
             { paddingBottom: insets.bottom + spacing.navHeight + spacing.xl },
@@ -349,7 +472,7 @@ const s = StyleSheet.create({
 
   listContent: {
     paddingHorizontal: spacing.screenPad,
-    gap: spacing.md,
+    paddingTop: spacing.xs,
   },
 
   // Block card
@@ -387,6 +510,11 @@ const s = StyleSheet.create({
   dragIcon: {
     fontSize: 14,
     color: colors.muted2,
+  },
+
+  fixedIndicator: {
+    width: 3,
+    backgroundColor: colors.goldDim,
   },
 
   blockContent: {
