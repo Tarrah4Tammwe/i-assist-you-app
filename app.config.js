@@ -1,4 +1,3 @@
-// app.config.js
 export default {
   expo: {
     name: "i assist you",
@@ -20,7 +19,6 @@ export default {
       },
       package: "com.iassistyou.app",
       permissions: [
-        "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
       ],
@@ -29,32 +27,18 @@ export default {
       bundleIdentifier: "com.iassistyou.app",
       supportsTablet: false,
       infoPlist: {
-        NSMicrophoneUsageDescription:
-          "i assist you uses your microphone for voice input so you can brain-dump and capture thoughts hands-free.",
         NSLocationWhenInUseUsageDescription:
           "i assist you uses your location to calculate travel time to appointments.",
-        NSSpeechRecognitionUsageDescription:
-          "i assist you uses speech recognition so you can dictate tasks and notes.",
       },
     },
     plugins: [
       "expo-router",
-      // NOTE: expo-font does NOT have a config plugin — fonts are loaded via Font.loadAsync in _layout.tsx
       [
         "expo-splash-screen",
         {
           backgroundColor: "#0a0d14",
           image: "./assets/splash.png",
           imageWidth: 200,
-        },
-      ],
-      [
-        "@react-native-voice/voice",
-        {
-          microphonePermission:
-            "Allow i assist you to use your microphone for voice input.",
-          speechRecognitionPermission:
-            "Allow i assist you to use speech recognition for voice input.",
         },
       ],
     ],
