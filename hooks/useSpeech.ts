@@ -1,54 +1,48 @@
-// ─── useSpeech hook ───────────────────────────────────────────────────────────
-// Shared voice recognition hook for all screens.
-// Currently uses Web Speech API (works on Expo Web + development).
-// TODO: swap body for @react-native-voice/voice when doing native build.
+// hooks/useSpeech.ts
+// Voice input hook using @react-native-voice/voice (native Android + iOS).
+// Transcription APPENDS to existing text — user always confirms before submitting.
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
-export function useSpeech(onResult: (transcript: string) => void) {
-  const [listening, setListening] = useState(false);
-  const [supported, setSupported] = useState(false);
-  const recRef = useRef<any>(null);
-
-  // Stable callback ref so the recognition handler doesn't go stale
-  const onResultRef = useRef(onResult);
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+export function useSpeech(onResult: (text: string) => void) {
+  const [listening, setListening]   = useState(false);
+  const [supported, setSupported]   = useState(true); // assume true; Voice handles unavailability
 
   useEffect(() => {
-    const SR =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-    if (SR) setSupported(true);
+    Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+      const transcript = e.value?.[0];
+      if (transcript) onResult(transcript);
+      setListening(false);
+    };
+
+    Voice.onSpeechError = (_e: SpeechErrorEvent) => {
+      setListening(false);
+    };
+
+    Voice.onSpeechEnd = () => {
+      setListening(false);
+    };
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners).catch(() => {});
+    };
   }, []);
 
-  const toggle = useCallback(() => {
-    const SR =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-
-    if (listening) {
-      recRef.current?.stop();
+  const toggle = async () => {
+    try {
+      if (listening) {
+        await Voice.stop();
+        setListening(false);
+      } else {
+        await Voice.start('en-GB');
+        setListening(true);
+      }
+    } catch (e) {
+      console.warn('Voice error:', e);
       setListening(false);
-      return;
     }
-
-    const rec = new SR();
-    rec.lang = 'en-GB';
-    rec.continuous = false;
-    rec.interimResults = false;
-
-    rec.onresult = (e: any) => {
-      const transcript: string = e.results[0][0].transcript;
-      onResultRef.current(transcript);
-    };
-    rec.onend  = () => setListening(false);
-    rec.onerror = () => setListening(false);
-
-    recRef.current = rec;
-    rec.start();
-    setListening(true);
-  }, [listening]);
+  };
 
   return { listening, supported, toggle };
 }
