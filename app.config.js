@@ -70,7 +70,7 @@ export default {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       eas: {
-        projectId: "YOUR_EAS_PROJECT_ID",
+        projectId: process.env.EAS_PROJECT_ID || "",
       },
     },
   },
