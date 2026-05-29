@@ -1,0 +1,19 @@
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.jks binary
+*.p8 binary
+*.p12 binary
+*.key binary
+*.mobileprovision binary
+
+# Text files
+*.js text
+*.tsx text
+*.ts text
+*.json text
+*.md text
+*.yml text
+*.yaml text
