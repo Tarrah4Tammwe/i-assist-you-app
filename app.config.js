@@ -1,6 +1,4 @@
 // app.config.js
-// Reads environment variables at build time via EAS secrets or .env.local
-
 export default {
   expo: {
     name: "i assist you",
@@ -21,7 +19,6 @@ export default {
         backgroundColor: "#0a0d14",
       },
       package: "com.iassistyou.app",
-      // Permissions needed for voice input and location
       permissions: [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -42,7 +39,7 @@ export default {
     },
     plugins: [
       "expo-router",
-      "expo-font",
+      // NOTE: expo-font does NOT have a config plugin — fonts are loaded via Font.loadAsync in _layout.tsx
       [
         "expo-splash-screen",
         {
@@ -66,7 +63,6 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      // These are injected at build time from EAS secrets or .env.local
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       eas: {
