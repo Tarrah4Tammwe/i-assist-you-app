@@ -14,7 +14,14 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "node": {
+        "version": "18.20.3"
+      },
+      "npm": {
+        "version": "10.7.0"
       }
     },
     "production": {
