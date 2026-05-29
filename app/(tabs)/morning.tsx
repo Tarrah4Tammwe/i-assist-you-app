@@ -206,14 +206,10 @@ export default function MorningScreen() {
       const data = await res.json();
 
       // Parse the blocks from the response
-      let blocks: any[];
-      try {
-        const raw: string = data.content ?? data.plan ?? data;
-        blocks = typeof raw === 'string'
-          ? JSON.parse(raw.replace(/```json|```/g, '').trim())
-          : raw;
-      } catch {
-        throw new Error('Could not parse plan from API response');
+      // API returns: { success: true, data: { id, blocks: [...], energy, ... } }
+      const blocks: any[] = data?.data?.blocks ?? [];
+      if (!Array.isArray(blocks) || blocks.length === 0) {
+        throw new Error('Plan came back empty — please try again');
       }
 
       // Save to Supabase (if user is logged in)
