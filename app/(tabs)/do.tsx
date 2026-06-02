@@ -13,7 +13,6 @@ import { useStore } from '../../lib/store';
 import { useSupabaseUser } from '../../hooks/useSupabaseUser';
 import { colors, spacing, radius } from '../../constants/theme';
 import { VoiceTextarea } from '../../components/VoiceTextarea';
-import { AppHeader } from '../../components/AppHeader';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
 
@@ -194,7 +193,6 @@ export default function DoNowScreen() {
 
   return (
     <>
-      <AppHeader />
       <ScrollView
         contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 90 }]}
         showsVerticalScrollIndicator={false}
