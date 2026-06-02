@@ -1,12 +1,10 @@
 // app/(tabs)/_layout.tsx
 // Bottom tab bar: Morning · Plan · Do · Dump · Check-in · Rest
-// AppHeader renders above all tabs via the parent layout.
 // Navy styled, gold active state, no background highlight on active tab.
 
 import { Tabs } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text } from 'react-native';
 import { colors } from '../../constants/theme';
-import { AppHeader } from '../../components/AppHeader';
 
 const TAB_CONFIG = [
   { name: 'morning',  title: 'Morning',  icon: '🌅' },
@@ -17,7 +15,7 @@ const TAB_CONFIG = [
   { name: 'winddown', title: 'Rest',     icon: '🌙' },
 ];
 
-function TabLayoutInner() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -57,14 +55,5 @@ function TabLayoutInner() {
         />
       ))}
     </Tabs>
-  );
-}
-
-export default function TabLayout() {
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <AppHeader />
-      <TabLayoutInner />
-    </View>
   );
 }
