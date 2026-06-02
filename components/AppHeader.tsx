@@ -1,11 +1,13 @@
 // components/AppHeader.tsx
 // Shared header used across all tab screens.
-// Shows: brand name | clock | date | weather pill | day status pill (inferred + tap to override)
+// Shows: brand name | gear icon | clock | date | weather pill | day status pill
+// Gear icon → settings modal (gear navigates to /settings)
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, Pressable, Modal, StyleSheet, Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius } from '../constants/theme';
 import { useStore } from '../lib/store';
@@ -41,19 +43,15 @@ function mapCondition(desc: string): WeatherCondition {
 
 async function fetchWeather(): Promise<WeatherData | null> {
   try {
-    // Open-Meteo — free, no API key, uses IP geolocation approximation
     const geoRes = await fetch('https://ipapi.co/json/');
     const geo = await geoRes.json();
     const { latitude, longitude } = geo;
-
     const wxRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=weathercode&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=auto`
     );
     const wx = await wxRes.json();
     const temp = Math.round(wx.current_weather?.temperature ?? 0);
     const code = wx.current_weather?.weathercode ?? 0;
-
-    // WMO weather codes → description
     let description = 'Clear';
     if (code === 0) description = 'Clear';
     else if (code <= 3) description = 'Partly cloudy';
@@ -64,16 +62,14 @@ async function fetchWeather(): Promise<WeatherData | null> {
     else if (code <= 49) description = 'Snowy';
     else if (code <= 59) description = 'Rainy';
     else if (code <= 79) description = 'Snowy';
-    else if (code <= 89) description = 'Stormy';
     else description = 'Stormy';
-
     return { temp, description, condition: mapCondition(description) };
   } catch {
     return null;
   }
 }
 
-// ─── Day status inference ─────────────────────────────────────────────────────
+// ─── Day status ───────────────────────────────────────────────────────────────
 
 export type DayStatus =
   | 'In flow' | 'Focused' | 'Productive' | 'Creative'
@@ -98,17 +94,13 @@ const ALL_STATUSES: DayStatus[] = [
 function inferStatus(energy: number, blocksTotal: number, blocksDone: number): DayStatus {
   const hour = new Date().getHours();
   const progress = blocksTotal > 0 ? blocksDone / blocksTotal : 0;
-
-  if (energy <= 2) {
-    return progress > 0.3 ? 'Taking it slow' : 'Flat';
-  }
+  if (energy <= 2) return progress > 0.3 ? 'Taking it slow' : 'Flat';
   if (energy >= 4) {
     if (progress > 0.6) return 'In flow';
     if (progress > 0.3) return 'Productive';
     if (hour >= 9 && hour <= 12) return 'Focused';
     return 'Creative';
   }
-  // energy 3
   if (progress > 0.5) return 'Productive';
   if (progress > 0.2) return 'Focused';
   if (hour >= 14 && hour <= 16) return 'Distracted';
@@ -118,7 +110,8 @@ function inferStatus(energy: number, blocksTotal: number, blocksDone: number): D
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AppHeader() {
-  const insets = useSafeAreaInsets();
+  const insets  = useSafeAreaInsets();
+  const router  = useRouter();
   const { todayPlan } = useStore();
 
   const [clock, setClock]           = useState(new Date());
@@ -126,25 +119,17 @@ export function AppHeader() {
   const [statusOverride, setStatusOverride] = useState<DayStatus | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Clock tick every 30s
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
 
-  // Fetch weather once on mount
-  useEffect(() => {
-    fetchWeather().then(setWeather);
-  }, []);
-
-  // Reset status override when new day starts
-  useEffect(() => {
-    setStatusOverride(null);
-  }, [todayPlan?.date]);
+  useEffect(() => { fetchWeather().then(setWeather); }, []);
+  useEffect(() => { setStatusOverride(null); }, [todayPlan?.date]);
 
   const energy      = todayPlan?.energy ?? 3;
   const blocksTotal = todayPlan?.blocks?.length ?? 0;
-  const blocksDone  = todayPlan?.blocksDone ?? 0;
+  const blocksDone  = (todayPlan as any)?.blocksDone ?? 0;
   const inferred    = inferStatus(energy, blocksTotal, blocksDone);
   const status      = statusOverride ?? inferred;
   const statusColor = STATUS_COLOURS[status];
@@ -157,10 +142,20 @@ export function AppHeader() {
   return (
     <>
       <View style={[s.hdr, { paddingTop: insets.top + 10 }]}>
-        {/* Row 1: Brand + Clock */}
+
+        {/* Row 1: Brand + Gear + Clock */}
         <View style={s.row}>
           <Text style={s.brand}>i assist you</Text>
-          <Text style={s.clock}>{timeStr}</Text>
+          <View style={s.row1Right}>
+            <Pressable
+              style={s.gearBtn}
+              onPress={() => router.push('/settings')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={s.gearIcon}>⚙</Text>
+            </Pressable>
+            <Text style={s.clock}>{timeStr}</Text>
+          </View>
         </View>
 
         {/* Row 2: Date + Weather */}
@@ -187,13 +182,8 @@ export function AppHeader() {
         </View>
       </View>
 
-      {/* Status override picker */}
-      <Modal
-        visible={pickerOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPickerOpen(false)}
-      >
+      {/* Status picker modal */}
+      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
         <Pressable style={s.modalOverlay} onPress={() => setPickerOpen(false)}>
           <View style={[s.pickerSheet, { paddingBottom: insets.bottom + 16 }]}>
             <Text style={s.pickerLabel}>How are you actually feeling right now?</Text>
@@ -229,55 +219,29 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.screenPad,
     paddingBottom: 13,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  brand:       { fontFamily: 'Syne-Bold', fontSize: 15, color: colors.gold, letterSpacing: -0.3 },
-  clock:       { fontFamily: 'Syne-Regular', fontSize: 12, color: colors.muted2 },
-  date:        { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.muted },
-  weatherPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: colors.s1, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.full, paddingVertical: 4, paddingLeft: 7, paddingRight: 10,
-  },
-  weatherIcon: { fontSize: 20 },
-  weatherTemp: { fontFamily: 'Syne-Bold', fontSize: 12, color: colors.cream },
-  weatherDesc: { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.muted },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-    backgroundColor: colors.s1, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 11,
-  },
-  statusDot:   { width: 6, height: 6, borderRadius: 3 },
-  statusText:  { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.text },
-  statusEdit:  { fontSize: 11, color: colors.muted2, marginLeft: 2 },
-  // Modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end', alignItems: 'center',
-  },
-  pickerSheet: {
-    width: '100%', backgroundColor: colors.s1,
-    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
-    borderWidth: 1.5, borderColor: colors.border,
-    padding: spacing.lg, gap: spacing.sm,
-  },
-  pickerLabel: { fontFamily: 'Syne-Regular', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: colors.muted, marginBottom: 4 },
-  pickerGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pickerOpt: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.border,
-    borderRadius: radius.full, paddingVertical: 7, paddingHorizontal: 13,
-  },
+  row:          { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  row1Right:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brand:        { fontFamily: 'Syne-Bold', fontSize: 15, color: colors.gold, letterSpacing: -0.3 },
+  gearBtn:      { width: 26, height: 26, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.s1, alignItems: 'center', justifyContent: 'center' },
+  gearIcon:     { fontSize: 14, color: colors.muted },
+  clock:        { fontFamily: 'Syne-Regular', fontSize: 12, color: colors.muted2 },
+  date:         { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.muted },
+  weatherPill:  { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.s1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 4, paddingLeft: 7, paddingRight: 10 },
+  weatherIcon:  { fontSize: 20 },
+  weatherTemp:  { fontFamily: 'Syne-Bold', fontSize: 12, color: colors.cream },
+  weatherDesc:  { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.muted },
+  statusPill:   { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: colors.s1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 11 },
+  statusDot:    { width: 6, height: 6, borderRadius: 3 },
+  statusText:   { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.text },
+  statusEdit:   { fontSize: 11, color: colors.muted2, marginLeft: 2 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end', alignItems: 'center' },
+  pickerSheet:  { width: '100%', backgroundColor: colors.s1, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1.5, borderColor: colors.border, padding: spacing.lg, gap: spacing.sm },
+  pickerLabel:  { fontFamily: 'Syne-Regular', fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', color: colors.muted, marginBottom: 4 },
+  pickerGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickerOpt:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 7, paddingHorizontal: 13 },
   pickerOptSel: { borderColor: colors.goldDim, backgroundColor: colors.goldBg },
   pickerDot:    { width: 5, height: 5, borderRadius: 3 },
   pickerOptText:{ fontFamily: 'Syne-Regular', fontSize: 11, color: colors.muted },
-  clearBtn: {
-    marginTop: 4, alignSelf: 'center',
-    backgroundColor: colors.s2, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 16,
-  },
+  clearBtn:     { marginTop: 4, alignSelf: 'center', backgroundColor: colors.s2, borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 16 },
   clearBtnText: { fontFamily: 'Syne-Regular', fontSize: 11, color: colors.muted },
 });
