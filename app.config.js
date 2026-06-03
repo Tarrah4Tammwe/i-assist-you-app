@@ -46,15 +46,7 @@ export default {
           imageWidth: 200,
         },
       ],
-      [
-        "@react-native-voice/voice",
-        {
-          microphonePermission:
-            "Allow i assist you to use your microphone for voice input.",
-          speechRecognitionPermission:
-            "Allow i assist you to use speech recognition for voice input.",
-        },
-      ],
+      // @react-native-voice/voice plugin configured at build time only (not needed for local dev)
     ],
     scheme: "iassistyou",
     experiments: {
