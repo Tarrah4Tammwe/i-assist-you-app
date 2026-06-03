@@ -48,6 +48,9 @@ export default {
       ],
       // @react-native-voice/voice plugin configured at build time only (not needed for local dev)
     ],
+    updates: {
+      enabled: false,
+    },
     scheme: "iassistyou",
     experiments: {
       typedRoutes: true,
