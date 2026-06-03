@@ -3,25 +3,22 @@
 //
 // Block rules:
 //   fixed=true  → appointment/meeting — locked to its time, cannot be moved
-//   fixed=false → task/break/food/transition — user can reorder freely
+//   fixed=false → task/break/food/transition — user can reorder via up/down arrows
 //
-// Drag to reorder: uses react-native-draggable-flatlist
+// Drag-to-reorder removed (was: react-native-draggable-flatlist — Gradle incompatible
+// with SDK 54 / RN 0.76). Replaced with simple up/down controls using only
+// ScrollView + Pressable — zero new native dependencies.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DraggableFlatList, {
-  RenderItemParams,
-  ScaleDecorator,
-} from 'react-native-draggable-flatlist';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useStore, PlanBlock } from '../../lib/store';
 import { useSupabaseUser } from '../../hooks/useSupabaseUser';
 import { supabase } from '../../lib/supabase';
@@ -34,7 +31,7 @@ const ENERGY_EMOJI: Record<number, string> = {
   1: '🪫', 2: '😶', 3: '🌤', 4: '⚡', 5: '🔥',
 };
 
-// ─── Block with local key for DraggableFlatList ────────────────────────────────
+// ─── Block with local key ─────────────────────────────────────────────────────
 
 interface KeyedBlock extends PlanBlock {
   key: string;
@@ -81,23 +78,28 @@ const badge = StyleSheet.create({
 
 interface BlockCardProps {
   block: KeyedBlock;
+  index: number;
+  total: number;
   isDone: boolean;
   isExecutorOpen: boolean;
   energy: number;
   userId?: string;
   onToggleDone: () => void;
   onToggleExecutor: () => void;
-  drag: () => void;
-  isActive: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
 function BlockCard({
-  block, isDone, isExecutorOpen, energy, userId,
-  onToggleDone, onToggleExecutor, drag, isActive,
+  block, index, total, isDone, isExecutorOpen, energy, userId,
+  onToggleDone, onToggleExecutor, onMoveUp, onMoveDown,
 }: BlockCardProps) {
   const timeLabel = block.duration
     ? `${block.time} · ${block.duration} min`
     : block.time;
+
+  const canMoveUp   = !block.fixed && index > 0;
+  const canMoveDown = !block.fixed && index < total - 1;
 
   return (
     <View style={[
@@ -105,21 +107,29 @@ function BlockCard({
       isDone && s.blockDone,
       isExecutorOpen && !block.fixed && s.blockActive,
       block.fixed && s.blockFixed,
-      isActive && s.blockDragging,
     ]}>
-      {/* Drag handle — only on moveable blocks */}
+
+      {/* Reorder controls — only on moveable blocks */}
       {!block.fixed && (
-        <Pressable
-          onLongPress={drag}
-          delayLongPress={150}
-          style={s.dragHandle}
-          accessibilityLabel="Hold to drag"
-        >
-          <Text style={s.dragIcon}>⠿</Text>
-        </Pressable>
+        <View style={s.reorderCol}>
+          <Pressable
+            style={[s.reorderBtn, !canMoveUp && s.reorderBtnDisabled]}
+            onPress={canMoveUp ? onMoveUp : undefined}
+            accessibilityLabel="Move block up"
+          >
+            <Text style={[s.reorderIcon, !canMoveUp && s.reorderIconDisabled]}>▲</Text>
+          </Pressable>
+          <Pressable
+            style={[s.reorderBtn, !canMoveDown && s.reorderBtnDisabled]}
+            onPress={canMoveDown ? onMoveDown : undefined}
+            accessibilityLabel="Move block down"
+          >
+            <Text style={[s.reorderIcon, !canMoveDown && s.reorderIconDisabled]}>▼</Text>
+          </Pressable>
+        </View>
       )}
 
-      {/* Fixed block — no drag handle, slightly wider content */}
+      {/* Fixed block left accent */}
       {block.fixed && (
         <View style={s.fixedIndicator} />
       )}
@@ -143,7 +153,7 @@ function BlockCard({
             </Text>
           </Pressable>
 
-          {/* ⚡ Do this on all blocks — including breaks/food */}
+          {/* ⚡ Do this on all non-fixed blocks — including breaks/food */}
           {!block.fixed && (
             <Pressable
               style={[s.actionBtn, isExecutorOpen && s.actionBtnActive]}
@@ -226,7 +236,6 @@ const gate = StyleSheet.create({
 });
 
 // ─── Persist done state to Supabase ──────────────────────────────────────────
-// Fire-and-forget — we don't block the UI on this.
 
 async function persistDoneState(
   planId: string,
@@ -245,6 +254,19 @@ async function persistDoneState(
     .eq('user_id', userId);
 }
 
+// ─── Move block helper ────────────────────────────────────────────────────────
+// Swaps item at `from` with item at `to`, respecting fixed block positions.
+
+function moveBlock(blocks: KeyedBlock[], from: number, to: number): KeyedBlock[] {
+  // Don't move past a fixed block
+  if (blocks[to]?.fixed) return blocks;
+  const next = [...blocks];
+  const temp = next[from];
+  next[from] = next[to];
+  next[to] = temp;
+  return next;
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function PlanScreen() {
@@ -253,7 +275,6 @@ export default function PlanScreen() {
   const { todayPlan } = useStore();
   const { user } = useSupabaseUser();
 
-  // Resolve plan data — prefer Zustand, fall back to route params
   const energy  = todayPlan?.energy ?? parseInt(params.energy ?? '3', 10);
   const name    = todayPlan?.name   ?? params.name ?? '';
   const planId  = todayPlan?.id;
@@ -263,15 +284,12 @@ export default function PlanScreen() {
     [todayPlan, params.blocks],
   );
 
-  // No plan at all — show gate
   const hasPlan = rawBlocks.length > 0;
 
-  // Keyed blocks for DraggableFlatList
   const [blocks, setBlocks] = useState<KeyedBlock[]>(() =>
     rawBlocks.map((b, i) => ({ ...b, key: `block-${i}` }))
   );
 
-  // Re-sync blocks if plan changes (e.g. user rebuilt morning)
   const prevRawRef = useRef(rawBlocks);
   useEffect(() => {
     if (rawBlocks !== prevRawRef.current && rawBlocks.length > 0) {
@@ -282,8 +300,7 @@ export default function PlanScreen() {
     }
   }, [rawBlocks]);
 
-  const [done, setDone]         = useState<Set<string>>(() => {
-    // Re-hydrate done state from blocks if they came from Supabase with done:true
+  const [done, setDone] = useState<Set<string>>(() => {
     const doneSaved = rawBlocks
       .map((b: any, i) => (b.done ? `block-${i}` : null))
       .filter(Boolean) as string[];
@@ -298,15 +315,12 @@ export default function PlanScreen() {
     setDone(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
-
-      // Persist with debounce — don't hammer Supabase on every tap
       if (planId && user?.id) {
         if (persistTimer.current) clearTimeout(persistTimer.current);
         persistTimer.current = setTimeout(() => {
           persistDoneState(planId, user.id, [...next], blocks);
         }, 1500);
       }
-
       return next;
     });
   };
@@ -315,94 +329,76 @@ export default function PlanScreen() {
     setOpenExec(prev => prev === key ? null : key);
   };
 
-  const renderItem = useCallback(({ item, drag, isActive }: RenderItemParams<KeyedBlock>) => (
-    <ScaleDecorator activeScale={1.02}>
-      <BlockCard
-        block={item}
-        isDone={done.has(item.key)}
-        isExecutorOpen={openExec === item.key}
-        energy={energy}
-        userId={user?.id}
-        onToggleDone={() => toggleDone(item.key)}
-        onToggleExecutor={() => toggleExec(item.key)}
-        drag={item.fixed ? () => {} : drag}
-        isActive={isActive}
-      />
-    </ScaleDecorator>
-  ), [done, openExec, energy, user]);
-
-  // Fixed blocks stay in place — only reorder moveable blocks
-  const onDragEnd = useCallback(({ data }: { data: KeyedBlock[] }) => {
-    const fixedPositions = blocks.reduce<Record<number, KeyedBlock>>((acc, b, i) => {
-      if (b.fixed) acc[i] = b;
-      return acc;
-    }, {});
-
-    const movedFlexible = data.filter(b => !b.fixed);
-    let flexIdx = 0;
-    const merged = blocks.map((_, i) => {
-      if (fixedPositions[i]) return fixedPositions[i];
-      return movedFlexible[flexIdx++];
-    });
-    setBlocks(merged);
-
-    // Persist reordered blocks
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const to = direction === 'up' ? index - 1 : index + 1;
+    const next = moveBlock(blocks, index, to);
+    setBlocks(next);
     if (planId && user?.id) {
       supabase
         .from('plans')
-        .update({ blocks: merged })
+        .update({ blocks: next })
         .eq('id', planId)
         .eq('user_id', user.id);
     }
-  }, [blocks, planId, user]);
+  };
 
   if (!hasPlan) return <NoPlanGate />;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={[s.container, { paddingTop: insets.top }]}>
+    <View style={[s.container, { paddingTop: insets.top }]}>
 
-        {/* ── Header ── */}
-        <View style={s.header}>
-          <View>
-            <Text style={s.title}>{name ? `${name}'s day` : 'Your day'}</Text>
-            <Text style={s.sub}>{done.size} of {blocks.length} done</Text>
-          </View>
-          <View style={s.energyTag}>
-            <Text style={s.energyTagText}>
-              {ENERGY_EMOJI[energy] ?? '🌤'} {energy}/5
-            </Text>
-          </View>
+      {/* ── Header ── */}
+      <View style={s.header}>
+        <View>
+          <Text style={s.title}>{name ? `${name}'s day` : 'Your day'}</Text>
+          <Text style={s.sub}>{done.size} of {blocks.length} done</Text>
         </View>
-
-        {/* ── Progress bar ── */}
-        <View style={s.progressWrap}>
-          <View style={[s.progressFill, { width: `${progress}%` as any }]} />
+        <View style={s.energyTag}>
+          <Text style={s.energyTagText}>
+            {ENERGY_EMOJI[energy] ?? '🌤'} {energy}/5
+          </Text>
         </View>
-
-        {/* ── Drag hint ── */}
-        <Text style={s.dragHint}>Hold to reorder · I rescheduled fixed blocks — don't touch those</Text>
-
-        {/* ── Plan blocks ── */}
-        <DraggableFlatList
-          data={blocks}
-          onDragEnd={onDragEnd}
-          keyExtractor={item => item.key}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-          contentContainerStyle={[
-            s.listContent,
-            { paddingBottom: insets.bottom + spacing.navHeight + spacing.xl },
-          ]}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={
-            <Pressable style={s.checkinBtn} onPress={() => router.push('/(tabs)/checkin')}>
-              <Text style={s.checkinBtnText}>Need a check-in? →</Text>
-            </Pressable>
-          }
-        />
       </View>
-    </GestureHandlerRootView>
+
+      {/* ── Progress bar ── */}
+      <View style={s.progressWrap}>
+        <View style={[s.progressFill, { width: `${progress}%` as any }]} />
+      </View>
+
+      {/* ── Hint ── */}
+      <Text style={s.dragHint}>▲▼ to reorder · I rescheduled fixed blocks</Text>
+
+      {/* ── Plan blocks ── */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          s.listContent,
+          { paddingBottom: insets.bottom + spacing.navHeight + spacing.xl },
+        ]}
+      >
+        {blocks.map((block, index) => (
+          <View key={block.key} style={index > 0 ? { marginTop: spacing.md } : undefined}>
+            <BlockCard
+              block={block}
+              index={index}
+              total={blocks.length}
+              isDone={done.has(block.key)}
+              isExecutorOpen={openExec === block.key}
+              energy={energy}
+              userId={user?.id}
+              onToggleDone={() => toggleDone(block.key)}
+              onToggleExecutor={() => toggleExec(block.key)}
+              onMoveUp={() => handleMove(index, 'up')}
+              onMoveDown={() => handleMove(index, 'down')}
+            />
+          </View>
+        ))}
+
+        <Pressable style={s.checkinBtn} onPress={() => router.push('/(tabs)/checkin')}>
+          <Text style={s.checkinBtnText}>Need a check-in? →</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -494,21 +490,29 @@ const s = StyleSheet.create({
   blockFixed: {
     borderColor: colors.goldDim,
   },
-  blockDragging: {
-    borderColor: colors.gold,
-    backgroundColor: colors.s2,
-  },
 
-  dragHandle: {
+  reorderCol: {
     width: 28,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: colors.border,
     backgroundColor: colors.s2,
+    gap: 2,
+    paddingVertical: 8,
   },
-  dragIcon: {
-    fontSize: 14,
+  reorderBtn: {
+    padding: 6,
+    borderRadius: 4,
+  },
+  reorderBtnDisabled: {
+    opacity: 0,
+  },
+  reorderIcon: {
+    fontSize: 10,
+    color: colors.muted,
+  },
+  reorderIconDisabled: {
     color: colors.muted2,
   },
 
