@@ -92,13 +92,13 @@ export default function RoutinesScreen() {
         <Text style={s.pageSub}>Shapes how your assistant structures your day — timing, buffers, block count.</Text>
 
         <Text style={s.secLbl}>Timing</Text>
-        {rows.slice(0,2).map(row => <SettingsRow key={row.key} {...row} onPress={()=>setModal({key:row.key,title:row.title,opts:row.opts})}/>)}
+        {rows.slice(0,2).map(({ key, ...row }) => <SettingsRow key={key} {...row} onPress={()=>setModal({key,title:row.title,opts:row.opts})}/>)}
 
         <Text style={s.secLbl}>Buffers</Text>
-        {rows.slice(2,4).map(row => <SettingsRow key={row.key} {...row} onPress={()=>setModal({key:row.key,title:row.title,opts:row.opts})}/>)}
+        {rows.slice(2,4).map(({ key, ...row }) => <SettingsRow key={key} {...row} onPress={()=>setModal({key,title:row.title,opts:row.opts})}/>)}
 
         <Text style={s.secLbl}>Plan shape</Text>
-        {rows.slice(4).map(row => <SettingsRow key={row.key} {...row} onPress={()=>setModal({key:row.key,title:row.title,opts:row.opts})}/>)}
+        {rows.slice(4).map(({ key, ...row }) => <SettingsRow key={key} {...row} onPress={()=>setModal({key,title:row.title,opts:row.opts})}/>)}
       </ScrollView>
 
       <Modal visible={!!modal} transparent animationType="slide" onRequestClose={() => setModal(null)}>

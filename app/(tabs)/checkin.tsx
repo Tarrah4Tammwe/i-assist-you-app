@@ -71,6 +71,7 @@ const ts = StyleSheet.create({
   row:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: 9, paddingHorizontal: 11, gap: 8 },
   rowText:      { flex: 1, fontFamily: 'Syne-Medium', fontSize: 12, color: colors.cream },
   pill:         { borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 9, borderWidth: 1 },
+  pillText:     { fontFamily: 'Syne-Medium', fontSize: 10 },
   keep:         { backgroundColor: colors.greenBg, borderColor: '#1a3028' },
   tomorrow:     { backgroundColor: colors.s1, borderColor: colors.border },
   drop:         { backgroundColor: '#1a1210', borderColor: '#3a2018' },

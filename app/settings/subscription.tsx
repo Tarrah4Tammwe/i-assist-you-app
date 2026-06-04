@@ -9,7 +9,7 @@ import { colors, spacing, radius } from '../../constants/theme';
 interface TierFeature { text: string; included: boolean; note?: string; }
 
 interface Tier {
-  id: 'spark' | 'phlo' | dopamine;
+  id: 'spark' | 'phlo' | 'dopamine';
   name: string;
   tagline: string;
   price: string;

@@ -43,16 +43,16 @@ function Row({ icon, title, sub, badge, onPress, variant = 'default' }: RowProps
 }
 
 function Badge({ label, variant }: { label: string; variant: 'gold' | 'green' | 'muted' | 'purple' }) {
-  const styles: Record<string, object> = {
+  const styleMap: Record<string, { bg: string; text: string; border: string }> = {
     gold:   { bg: colors.goldBg,   text: colors.gold,   border: colors.goldDim },
     green:  { bg: colors.greenBg,  text: colors.green,  border: '#1a3a28' },
     muted:  { bg: colors.s2,       text: colors.muted,  border: colors.border },
     purple: { bg: colors.purpleBg, text: colors.purple, border: colors.purpleBorder },
   };
-  const v = styles[variant];
+  const v = styleMap[variant];
   return (
-    <View style={[s.badge, { backgroundColor: v.bg as string, borderColor: v.border as string }]}>
-      <Text style={[s.badgeText, { color: v.text as string }]}>{label}</Text>
+    <View style={[s.badge, { backgroundColor: v.bg, borderColor: v.border }]}>
+      <Text style={[s.badgeText, { color: v.text }]}>{label}</Text>
     </View>
   );
 }
