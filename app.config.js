@@ -27,6 +27,7 @@ export default {
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
       ],
+      kotlinVersion: "2.0.21",
     },
     ios: {
       bundleIdentifier: "com.iassistyou.app",
