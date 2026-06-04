@@ -27,7 +27,6 @@ export default {
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
       ],
-      kotlinVersion: "2.0.21",
     },
     ios: {
       bundleIdentifier: "com.iassistyou.app",
@@ -49,6 +48,14 @@ export default {
           backgroundColor: "#0a0d14",
           image: "./assets/splash.png",
           imageWidth: 200,
+        },
+      ],
+      [
+        "expo-build-properties",
+        {
+          android: {
+            kotlinVersion: "2.0.21",
+          },
         },
       ],
     ],
