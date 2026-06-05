@@ -1,4 +1,4 @@
-name: EAS Preview Build
+name: Build Android APK
 
 on:
   push:
@@ -15,11 +15,29 @@ jobs:
         with:
           node-version: 20
 
-      - uses: expo/expo-github-action@v8
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: 17
 
-      - run: npm install
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - run: eas build --platform android --profile preview --non-interactive --clear-cache
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Prebuild
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build APK
+        run: cd android && ./gradlew assembleRelease --no-daemon
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: i-assist-you-debug
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
