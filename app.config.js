@@ -55,6 +55,7 @@ export default {
         {
           android: {
             kotlinVersion: "2.0.21",
+            newArchEnabled: false,
           },
         },
       ],
