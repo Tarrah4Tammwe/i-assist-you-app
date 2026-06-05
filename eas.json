@@ -10,7 +10,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_NO_DOCTOR": "1"
+        "EXPO_NO_DOCTOR": "1",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "NPM_CONFIG_PREFER_DEDUPE": "true"
       }
     },
     "production": {
@@ -18,7 +20,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_NO_DOCTOR": "1"
+        "EXPO_NO_DOCTOR": "1",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     }
   },
