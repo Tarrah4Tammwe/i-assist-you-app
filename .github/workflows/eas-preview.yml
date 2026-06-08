@@ -25,21 +25,16 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build preview APK
-        id: eas_build
+      - name: Check EAS auth and project
         run: |
-          eas build --platform android --profile preview --non-interactive --clear-cache 2>&1 | tee /tmp/eas_output.txt
-          echo "EAS_EXIT=${PIPESTATUS[0]}" >> $GITHUB_ENV
+          echo "--- whoami ---"
+          eas whoami || true
+          echo "--- project info ---"
+          eas project:info || true
         env:
           EXPO_NO_DOCTOR: "1"
 
-      - name: Output EAS result to summary
-        if: always()
-        run: |
-          echo "## EAS Build Output" >> $GITHUB_STEP_SUMMARY
-          cat /tmp/eas_output.txt >> $GITHUB_STEP_SUMMARY || echo "No output captured" >> $GITHUB_STEP_SUMMARY
-          echo "Exit code: $EAS_EXIT" >> $GITHUB_STEP_SUMMARY
-
-      - name: Fail if EAS failed
-        if: always()
-        run: exit $EAS_EXIT
+      - name: Build preview APK
+        run: eas build --platform android --profile preview --non-interactive --clear-cache
+        env:
+          EXPO_NO_DOCTOR: "1"
