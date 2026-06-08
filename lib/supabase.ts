@@ -1,10 +1,6 @@
-// ─── Supabase client ─────────────────────────────────────────────────────────
-// Single shared instance for the whole app.
-// URL + anon key come from Expo's Constants.expoConfig.extra (set in app.config.js)
-// which reads from process.env / .env.local at build time.
-
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const extra = Constants.expoConfig?.extra ?? {};
 
@@ -20,13 +16,13 @@ const SUPABASE_ANON_KEY: string =
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn(
-    '[supabase] Missing env vars. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+    '[supabase] Missing env vars. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.'
   );
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    // Persist session in AsyncStorage (expo-secure-store recommended for prod)
+    storage: AsyncStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
