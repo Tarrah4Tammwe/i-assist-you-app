@@ -25,15 +25,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Check EAS auth and project
-        run: |
-          echo "--- whoami ---"
-          eas whoami || true
-          echo "--- project info ---"
-          eas project:info || true
-        env:
-          EXPO_NO_DOCTOR: "1"
-
       - name: Build preview APK
         run: eas build --platform android --profile preview --non-interactive --clear-cache
         env:
