@@ -65,8 +65,8 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: "https://luyknuzzctygtyhefliv.supabase.co",
+      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1eWtudXp6Y3R5Z3R5aGVmbGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NzcxOTUsImV4cCI6MjA5MzI1MzE5NX0.xBbkFeVtY5cZfKrpQFN5ym7PAAh4A-wuC56ksAhUT-I",
       eas: {
         projectId: "78d0e204-359e-44ef-b655-3a3218d4468c",
       },
