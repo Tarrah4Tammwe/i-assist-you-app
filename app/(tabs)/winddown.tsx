@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
 import { colors, spacing, radius } from '../../constants/theme';
 import { VoiceTextarea } from '../../components/VoiceTextarea';
+import { AppHeader } from '../../components/AppHeader';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
 
@@ -167,9 +168,11 @@ export default function WinddownScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 100 }]}
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AppHeader />
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 100 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
@@ -304,64 +307,7 @@ export default function WinddownScreen() {
         </>
       )}
     </ScrollView>
+    </ScrollView>
+    </View>
   );
 }
-
-const s = StyleSheet.create({
-  scroll:            { paddingHorizontal: spacing.screenPad, paddingTop: spacing.lg, gap: spacing.gap },
-  titleBlock:        { gap: 4 },
-  title:             { fontFamily: 'Syne-Bold', fontSize: 22, color: colors.cream, letterSpacing: -0.5, fontStyle: 'italic' },
-  sub:               { fontFamily: 'Literata-Light', fontSize: 13, color: colors.muted, lineHeight: 20 },
-  label:             { fontFamily: 'Syne-Regular', fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase', color: colors.muted2, marginBottom: 10 },
-  card:              { backgroundColor: colors.s1, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.cardPad, gap: 0 },
-
-  // Unfinished blocks
-  blockRow:          { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: 9, paddingHorizontal: 10, marginBottom: 6 },
-  blockDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border2, flexShrink: 0 },
-  blockTitle:        { flex: 1, fontFamily: 'Syne-Medium', fontSize: 12, color: colors.text },
-  blockActions:      { flexDirection: 'row', gap: 5 },
-  blockBtn:          { borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 9, borderWidth: 1 },
-  blockBtnText:      { fontFamily: 'Syne-Medium', fontSize: 10 },
-  btnTomorrow:       { borderColor: colors.goldDim, backgroundColor: colors.goldBg },
-  btnTomorrowActive: { borderColor: colors.gold, backgroundColor: colors.goldBg },
-  btnTomorrowText:   { color: colors.goldDim },
-  btnTomorrowTextActive: { color: colors.gold },
-  btnDrop:           { borderColor: '#3a1a15', backgroundColor: '#140808' },
-  btnDropActive:     { borderColor: colors.red },
-  btnDropText:       { color: colors.red },
-  blockHint:         { fontFamily: 'Literata-Light', fontSize: 11, color: colors.muted2, lineHeight: 16, marginTop: 6 },
-
-  // Mood
-  moodRow:           { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 },
-  moodChip:          { backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 7, paddingHorizontal: 12 },
-  moodChipActive:    { borderColor: colors.goldDim, backgroundColor: colors.goldBg },
-  moodText:          { fontFamily: 'Literata-Light', fontSize: 13, color: colors.muted },
-  moodTextActive:    { color: colors.gold },
-  orRow:             { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  orLine:            { flex: 1, height: 1, backgroundColor: colors.border },
-  orText:            { fontFamily: 'Syne-Regular', fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', color: colors.muted2 },
-
-  // Seed tomorrow
-  seedHint:          { fontFamily: 'Literata-Light', fontSize: 11, color: colors.muted2, lineHeight: 16, marginTop: 8 },
-
-  // CTA
-  closeBtn:          { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: 15, alignItems: 'center' },
-  closeBtnDisabled:  { opacity: 0.35 },
-  closeBtnText:      { fontFamily: 'Syne-Bold', fontSize: 15, color: colors.bg },
-
-  // Result
-  resultCard:        { backgroundColor: colors.s1, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.cardPad, gap: 0 },
-  resultText:        { fontFamily: 'Literata-Light', fontStyle: 'italic', fontSize: 15, lineHeight: 27, color: colors.cream },
-  signalRow:         { flexDirection: 'row', alignItems: 'flex-start', gap: 9, backgroundColor: colors.bg, borderRadius: radius.md, padding: 10, marginTop: 12 },
-  signalDot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.gold, marginTop: 5, flexShrink: 0 },
-  signalText:        { flex: 1, fontFamily: 'Syne-Regular', fontSize: 12, color: colors.gold, lineHeight: 18 },
-
-  // Carried
-  carriedRow:        { flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: colors.bg, borderRadius: radius.md, paddingVertical: 9, paddingHorizontal: 10, marginBottom: 6 },
-  carriedDot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.goldDim },
-  carriedTitle:      { fontFamily: 'Syne-Medium', fontSize: 12, color: colors.text },
-
-  restMark:          { textAlign: 'center', fontFamily: 'Syne-Regular', fontSize: 11, color: colors.muted2, letterSpacing: 3, paddingVertical: 4 },
-  doneBtn:           { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 12, alignItems: 'center' },
-  doneBtnText:       { fontFamily: 'Syne-Regular', fontSize: 13, color: colors.muted },
-});
