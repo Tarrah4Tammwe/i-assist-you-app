@@ -14,7 +14,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +26,7 @@ import { supabase } from '../../lib/supabase';
 import { useSupabaseUser } from '../../hooks/useSupabaseUser';
 import { useStore, PlanBlock } from '../../lib/store';
 import { colors, spacing, radius } from '../../constants/theme';
+import { AppHeader } from '../../components/AppHeader';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
 
@@ -76,27 +76,9 @@ interface RescheduledInfo {
   newTime: string;
 }
 
-function useSpeech(onResult: (text: string) => void) {
-  const [listening, setListening] = useState(false);
-  const [supported, setSupported] = useState(false);
-  const recRef = useRef<any>(null);
-  useEffect(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SR) setSupported(true);
-  }, []);
-  const toggle = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    if (listening) { recRef.current?.stop(); setListening(false); return; }
-    const rec = new SR();
-    rec.lang = 'en-GB'; rec.continuous = false; rec.interimResults = false;
-    rec.onresult = (e: any) => onResult(e.results[0][0].transcript);
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recRef.current = rec; rec.start(); setListening(true);
-  };
-  return { listening, supported, toggle };
-}
+// Voice: using useSpeech hook from hooks/useSpeech.ts (native voice, dev build)
+// Falls back to supported:false silently in preview builds — mic button hidden.
+import { useSpeech } from '../../hooks/useSpeech';
 
 function DotPulse() {
   const anims = [useRef(new Animated.Value(0.2)).current, useRef(new Animated.Value(0.2)).current, useRef(new Animated.Value(0.2)).current];
@@ -305,9 +287,9 @@ export default function MorningScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" />
+      <AppHeader />
       <ScrollView
-        contentContainerStyle={[s.scroll, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 90 + spacing.lg }]}
+        contentContainerStyle={[s.scroll, { paddingTop: spacing.lg, paddingBottom: insets.bottom + 90 + spacing.lg }]}
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -520,3 +502,4 @@ const cf = StyleSheet.create({
   title: { fontFamily: 'Syne-Bold', fontSize: 16, color: colors.green },
   body:  { fontFamily: 'Literata-Light', fontSize: 14, color: colors.text, lineHeight: 22 },
 });
+
