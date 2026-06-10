@@ -13,6 +13,7 @@ import { useStore } from '../../lib/store';
 import { colors, spacing, radius } from '../../constants/theme';
 import { VoiceInput } from '../../components/VoiceInput';
 import { BodyDoubleSession } from '../../components/BodyDoubleSession';
+import { AppHeader } from '../../components/AppHeader';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
 
@@ -332,15 +333,8 @@ Rules:
   // ─── Body double mode ────────────────────────────────────────────────────────
   if (mode === 'body-double') {
     return (
-      <View style={[s.container, { paddingTop: insets.top }]}>
-        <View style={s.header}>
-          <View style={s.headerRow}>
-            <Text style={s.title}>Body double</Text>
-            <Pressable onPress={() => setMode('conversation')} style={s.backBtn}>
-              <Text style={s.backBtnText}>← Back</Text>
-            </Pressable>
-          </View>
-        </View>
+      <View style={[s.container, { paddingTop: 0 }]}>
+        <AppHeader />
         <View style={[s.bodyDoubleWrap, { paddingBottom: insets.bottom + 80 }]}>
           <BodyDoubleSession onEnd={() => setMode('conversation')} />
         </View>
@@ -350,7 +344,8 @@ Rules:
 
   // ─── Conversation mode ───────────────────────────────────────────────────────
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <View style={[s.container, { paddingTop: 0 }]}>
+      <AppHeader />
       <View style={s.header}>
         <Text style={s.title}>Check in</Text>
         {msgs.length === 0 && !params.dumpText && (
@@ -492,3 +487,4 @@ const s = StyleSheet.create({
 
   bodyDoubleWrap:  { flex: 1, paddingHorizontal: spacing.screenPad, paddingTop: spacing.sm },
 });
+
