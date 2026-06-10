@@ -9,6 +9,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useStore } from '../../lib/store';
 import { useSupabaseUser } from '../../hooks/useSupabaseUser';
 import { colors, spacing, radius } from '../../constants/theme';
+import { AppHeader } from '../../components/AppHeader';
 import { VoiceTextarea } from '../../components/VoiceTextarea';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
@@ -69,7 +70,7 @@ export default function DoNowScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[s.scroll, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 90 }]}
+      contentContainerStyle={[s.scroll, { paddingTop: spacing.lg, paddingBottom: insets.bottom + 90 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
@@ -170,3 +171,4 @@ const s = StyleSheet.create({
   ghostBtn:     { backgroundColor: colors.s1, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 13, alignItems: 'center' },
   ghostBtnText: { fontFamily: 'Syne-Medium', fontSize: 13, color: colors.text },
 });
+
