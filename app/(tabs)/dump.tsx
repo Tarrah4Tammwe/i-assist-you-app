@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase';
 import { useStore } from '../../lib/store';
 import { colors, spacing, radius, dumpTypeColors } from '../../constants/theme';
 import { useSpeech } from '../../hooks/useSpeech';
+import { AppHeader } from '../../components/AppHeader';
 
 const API_BASE = 'https://i-assist-you.vercel.app';
 
@@ -344,11 +345,13 @@ export default function DumpScreen() {
   ];
 
   return (
-    <ScrollView
-      contentContainerStyle={[s.scroll, {
-        paddingTop: insets.top + spacing.lg,
-        paddingBottom: insets.bottom + 90,
-      }]}
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AppHeader />
+      <ScrollView
+        contentContainerStyle={[s.scroll, {
+          paddingTop: spacing.lg,
+          paddingBottom: insets.bottom + 90,
+        }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
@@ -495,66 +498,7 @@ export default function DumpScreen() {
         </Text>
       )}
     </ScrollView>
+    </ScrollView>
+    </View>
   );
 }
-
-const s = StyleSheet.create({
-  scroll:         { paddingHorizontal: spacing.screenPad, gap: spacing.gap },
-  title:          { fontFamily: 'Syne-Bold', fontSize: 22, color: colors.cream, letterSpacing: -0.5 },
-  sub:            { fontFamily: 'Literata-Light', fontSize: 13, color: colors.muted, lineHeight: 20 },
-
-  // Pattern banner
-  patternBanner:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 1, borderRadius: radius.lg, padding: 12 },
-  patternIcon:    { fontSize: 14, marginTop: 2 },
-  patternLabel:   { fontFamily: 'Syne-Medium', fontSize: 9, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 },
-  patternText:    { fontFamily: 'Literata-Light', fontSize: 13, lineHeight: 19 },
-
-  // Capture
-  captureBox:     { backgroundColor: colors.s1, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, padding: 12, gap: 8 },
-  captureRow:     { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
-  captureInput:   { flex: 1, backgroundColor: colors.bg, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 10, color: colors.cream, fontFamily: 'Literata-Light', fontSize: 13, minHeight: 50 },
-  captureButtons: { gap: 6 },
-  micBtn:         { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.s2, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  micBtnActive:   { borderColor: colors.red, backgroundColor: '#1e0a08' },
-  micIcon:        { fontSize: 15 },
-  sendBtn:        { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
-  sendBtnDisabled:{ opacity: 0.3 },
-  sendBtnText:    { fontFamily: 'Syne-Bold', fontSize: 18, color: colors.bg },
-  listeningLabel: { fontFamily: 'Syne-Regular', fontSize: 11, color: colors.red, letterSpacing: 0.5 },
-
-  // Filter row
-  filterRow:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filters:        { flexDirection: 'row', gap: 5 },
-  filterPill:     { paddingHorizontal: 11, paddingVertical: 5, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.s1 },
-  filterPillActive:{ borderColor: colors.goldDim },
-  filterText:     { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.muted },
-  filterTextActive:{ color: colors.gold },
-  sortBtn:        { backgroundColor: colors.s1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: 10, paddingVertical: 6, flexShrink: 0 },
-  sortBtnText:    { fontFamily: 'Syne-Medium', fontSize: 10, color: colors.muted },
-  groupTitle:     { fontFamily: 'Syne-Regular', fontSize: 10, color: colors.goldDim, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
-
-  // Cards
-  card:           { borderWidth: 1.5, borderRadius: radius.lg, padding: 12 },
-  cardTop:        { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  cardText:       { flex: 1, fontFamily: 'Literata-Light', fontSize: 13, lineHeight: 20 },
-  delBtn:         { fontSize: 12, paddingTop: 2 },
-  cardMeta:       { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 7 },
-  cardTime:       { fontFamily: 'Syne-Regular', fontSize: 9, letterSpacing: 0.3 },
-  tag:            { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
-  tagText:        { fontFamily: 'Syne-Medium', fontSize: 9 },
-
-  // Action buttons
-  actionsRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 9, paddingTop: 8, borderTopWidth: 1 },
-  actionBtn:      { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 7, paddingVertical: 4, paddingHorizontal: 8, borderWidth: 1 },
-  actionIcon:     { fontSize: 10 },
-  actionText:     { fontFamily: 'Syne-Medium', fontSize: 9 },
-
-  // Inline result panel
-  resultBox:      { backgroundColor: colors.s2, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, marginTop: 4, gap: 6 },
-  resultText:     { fontFamily: 'Literata-Light', fontSize: 13, color: colors.cream, lineHeight: 20 },
-  resultItem:     { fontFamily: 'Literata-Light', fontSize: 13, color: colors.cream, lineHeight: 20 },
-  resultError:    { fontFamily: 'Literata-Light', fontSize: 13, color: colors.red },
-  dismissText:    { fontFamily: 'Syne-Regular', fontSize: 11, color: colors.muted },
-  thinkingText:   { fontFamily: 'Literata-Light', fontStyle: 'italic', fontSize: 12, color: colors.muted },
-  emptyText:      { fontFamily: 'Literata-Light', fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 22, paddingVertical: 24 },
-});
