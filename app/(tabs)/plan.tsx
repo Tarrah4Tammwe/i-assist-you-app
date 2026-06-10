@@ -24,6 +24,7 @@ import { useSupabaseUser } from '../../hooks/useSupabaseUser';
 import { supabase } from '../../lib/supabase';
 import { colors, radius, spacing } from '../../constants/theme';
 import { TaskExecutor } from '../../components/TaskExecutor';
+import { AppHeader } from '../../components/AppHeader';
 
 // ─── Energy emoji map ──────────────────────────────────────────────────────────
 
@@ -345,9 +346,10 @@ export default function PlanScreen() {
   if (!hasPlan) return <NoPlanGate />;
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <View style={[s.container, { paddingTop: 0 }]}>
+      <AppHeader />
 
-      {/* ── Header ── */}
+      {/* ── Plan sub-header: name + progress + energy tag ── */}
       <View style={s.header}>
         <View>
           <Text style={s.title}>{name ? `${name}'s day` : 'Your day'}</Text>
@@ -596,3 +598,4 @@ const s = StyleSheet.create({
     color: colors.text,
   },
 });
+
